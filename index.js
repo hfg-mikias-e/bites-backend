@@ -86,19 +86,22 @@ app.get("/getCategories", async (req, res) => {
 
 app.post("/getSkills", async (req, res) => {
   try {
-    console.log(req.body.categoryId)
     const skills = await database.library.find({category: new ObjectId(req.body.categoryId),}).toArray();
-    console.log(skills);
     res.status(200).send(skills);
   } catch {
-    console.error("categories could not be fetched");
+    console.error("skills could not be fetched");
     res.status(500).end();
   }
 });
 
-// "check" Endpoint gibt Status zurück, falls Verbindung besteht
-app.get("/check", async (req, res) => {
-  res.status(200).end();
+app.post("/getBite", async (req, res) => {
+  try {
+    const bite = await database.library.findOne({_id: new ObjectId(req.body.biteId),}).toArray();
+    res.status(200).send(bite);
+  } catch {
+    console.error("bite could not be fetched");
+    res.status(500).end();
+  }
 });
 
 app.get('/', (req, res) => {
