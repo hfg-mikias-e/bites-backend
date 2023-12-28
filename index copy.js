@@ -1,17 +1,13 @@
-require("dotenv").config();
 const express = require("express");
 const app = express();
-//const http = require('http').createServer(app);
+const http = require("http").createServer(app);
 const { ObjectId } = require("mongodb");
+//require("dotenv").config();
 
-app.use(express.json());
-app.use(function (req, res, next) {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header(
-    "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With, Content-Type, Accept"
-  );
-  next();
+const io = require("socket.io")(http, {
+  cors: {
+    origin: [process.env.VUE_APP_ENDPOINT],
+  }
 });
 
 // MongoDB-Client
@@ -19,9 +15,6 @@ const MongoClient = require("mongodb").MongoClient;
 const uri = `mongodb+srv://${process.env.MONGODB_USER}:${process.env.MONGODB_PASSWORD}@${process.env.MONGODB_ID}.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri);
 let database;
-
-// Verbindung herstellen
-connectDB();
 
 // Funktion stellt Verbindung zur Datenbank her
 async function connectDB() {
@@ -42,6 +35,50 @@ async function connectDB() {
     await client.close();
   }
 }
+// Verbindung herstellen
+connectDB();
+
+io.on("connection", (socket) => {
+  socket.emit('connected', true)
+
+  socket.on("connect_error", (e) => {
+    socket.emit("connected", false);
+  });
+
+  socket.on("pingServer", () => {
+    // check if communication still stands
+    socket.emit("serverPinged");
+  });
+
+  socket.on("disconnect", async () => {
+    // also check if user left from a room
+    // find the corresponding roomID
+    let roomID = "";
+    for (let i = 0; i < rooms.length; i++) {
+      if (
+        rooms[i].users.find((index) => index.session === socket.id) !==
+        undefined
+      ) {
+        roomID = rooms[i].room;
+        await leaveRoom(roomID);
+        break;
+      }
+    }
+
+    if (clients.find((index) => index.session === socket.id) !== undefined) {
+      users--;
+      console.log("player disconnected: " + users + " logged on");
+
+      clients.splice(
+        clients.findIndex((user) => user.session === socket.id),
+        1
+      );
+      io.emit("updateUsers", clients);
+    }
+
+    console.log("a user disconnected.");
+  });
+});
 
 /*
     const eintrag = await database.area.findOne({
@@ -73,8 +110,10 @@ app.get("/getCategories", async (req, res) => {
 
     let data = [];
     for (area of areas) {
-        const categories = await database.categories.find({area: area._id,}).toArray();
-        data.push({ name: area.name, skills: categories });
+      const categories = await database.categories
+        .find({ area: area._id })
+        .toArray();
+      data.push({ name: area.name, skills: categories });
     }
 
     res.status(200).send(data);
@@ -86,8 +125,10 @@ app.get("/getCategories", async (req, res) => {
 
 app.post("/getSkills", async (req, res) => {
   try {
-    console.log(req.body.categoryId)
-    const skills = await database.library.find({category: new ObjectId(req.body.categoryId),}).toArray();
+    console.log(req.body.categoryId);
+    const skills = await database.library
+      .find({ category: new ObjectId(req.body.categoryId) })
+      .toArray();
     console.log(skills);
     res.status(200).send(skills);
   } catch {
@@ -101,9 +142,10 @@ app.get("/check", async (req, res) => {
   res.status(200).end();
 });
 
-app.get('/', (req, res) => {
-  res.status(200).send('<h1>Hey!</h1>').end;
+app.get("/", (req, res) => {
+  res.send("<h1>Hey Socket.io</h1>");
 });
-app.listen(process.env.PORT || 4000, () => {
-  console.log('listening!');
+
+http.listen(process.env.PORT || 4000, () => {
+  console.log("listening!");
 });
