@@ -34,8 +34,10 @@ async function sendPushNotification(external_id) {
     include_aliases: {
       external_id: [external_id]
     },
+    include_external_user_ids: [external_id],
     //included_segments: ["Test Users"],
     target_channel: "push",
+    channel_for_external_user_ids: "push",
     external_id: external_id
     /*
     data: {
