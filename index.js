@@ -31,14 +31,12 @@ async function sendPushNotification(external_id) {
       en: "test",
       de: "TEST"
     },
-    include_aliases: {"external_id": [external_id]},
+    include_aliases: {external_id: [external_id]},
     //included_segments: ["Test Users"],
     target_channel: "push",
-    /*
     data: {
-      postId: postId,
-    },
-    */
+      postId: "1",
+    }
   };
 
   try {
