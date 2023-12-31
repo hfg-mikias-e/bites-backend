@@ -31,17 +31,22 @@ async function sendPushNotification(external_id) {
       en: "test",
       de: "TEST"
     },
-    include_aliases: {external_id: [external_id]},
+    include_aliases: {
+      external_id: [external_id]
+    },
     //included_segments: ["Test Users"],
     target_channel: "push",
+    external_id: external_id
+    /*
     data: {
       postId: "1",
     }
+    */
   };
 
   try {
     const send = await OneSignalClient.createNotification(notification);
-    console.log("sent!")
+    console.log(send)
   } catch {
     console.log("oops")
   }
@@ -141,7 +146,6 @@ app.post("/getBite", async (req, res) => {
 app.post("/setNotification", async (req, res) => {
   try {
     const pushNotification = await sendPushNotification(req.body.external_id)
-    console.log(pushNotification)
 
     res.status(200).end();
   } catch {
