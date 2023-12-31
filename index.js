@@ -20,6 +20,8 @@ const OneSignalClient = new OneSignal.Client(process.env.ONESIGNAL_APP_ID, proce
 //const OneSignalUserClient = new OneSignal.UserClient('userAuthKey');
 
 async function sendPushNotification(external_id) {
+  console.log(external_id)
+  
   const notification = {
     headings: {
       en: "test",
