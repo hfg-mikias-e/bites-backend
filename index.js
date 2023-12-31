@@ -1,6 +1,8 @@
 require("dotenv").config();
+//const axios = require("axios");
 const express = require("express");
 const app = express();
+const OneSignal = require('onesignal-node');
 //const http = require('http').createServer(app);
 const { ObjectId } = require("mongodb");
 
@@ -13,6 +15,37 @@ app.use(function (req, res, next) {
   );
   next();
 });
+
+const OneSignalClient = new OneSignal.Client(process.env.ONESIGNAL_APP_ID, process.env.ONESIGNAL_REST_API_KEY);
+//const OneSignalUserClient = new OneSignal.UserClient('userAuthKey');
+
+async function sendPushNotification(external_id) {
+  const notification = {
+    headings: {
+      en: "test",
+      de: "TEST"
+    },
+    contents: {
+      en: "test",
+      de: "TEST"
+    },
+    //include_aliases: {"external_id": [external_id]},
+    included_segments: ["Test Users"],
+    target_channel: "push",
+    /*
+    data: {
+      postId: postId,
+    },
+    */
+  };
+
+  try {
+    const send = await OneSignalClient.createNotification(notification);
+    console.log("sent!")
+  } catch {
+    console.log("oops")
+  }
+};
 
 // MongoDB-Client
 const MongoClient = require("mongodb").MongoClient;
@@ -73,8 +106,8 @@ app.get("/getCategories", async (req, res) => {
 
     let data = [];
     for (area of areas) {
-        const categories = await database.categories.find({area: area._id,}).toArray();
-        data.push({ name: area.name, skills: categories });
+      const categories = await database.categories.find({ area: area._id, }).toArray();
+      data.push({ name: area.name, skills: categories });
     }
 
     res.status(200).send(data);
@@ -86,7 +119,7 @@ app.get("/getCategories", async (req, res) => {
 
 app.post("/getSkills", async (req, res) => {
   try {
-    const skills = await database.library.find({category: new ObjectId(req.body.categoryId)}).toArray();
+    const skills = await database.library.find({ category: new ObjectId(req.body.categoryId) }).toArray();
     res.status(200).send(skills);
   } catch {
     console.error("skills could not be fetched");
@@ -96,11 +129,23 @@ app.post("/getSkills", async (req, res) => {
 
 app.post("/getBite", async (req, res) => {
   try {
-    const bite = await database.library.findOne({_id: new ObjectId(req.body.biteId)});
+    const bite = await database.library.findOne({ _id: new ObjectId(req.body.biteId) });
     console.log(bite)
     res.status(200).send(bite);
   } catch {
     console.error("bite could not be fetched");
+    res.status(500).end();
+  }
+});
+
+app.post("/setNotification", async (req, res) => {
+  try {
+    const pushNotification = await sendPushNotification(req.body.external_id)
+    console.log(pushNotification)
+
+    res.status(200).end();
+  } catch {
+    console.error("skills could not be fetched");
     res.status(500).end();
   }
 });
