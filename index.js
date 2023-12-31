@@ -34,6 +34,7 @@ async function sendPushNotification(external_id) {
     include_aliases: {
       external_id: [external_id]
     },
+    send_after: "2023-12-31 16:05:00 GMT+0100",
     //included_segments: ["Test Users"],
     target_channel: "push"
   };
