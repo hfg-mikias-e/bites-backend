@@ -28,8 +28,8 @@ async function sendPushNotification(external_id) {
       de: "TEST"
     },
     contents: {
-      en: "test",
-      de: "TEST"
+      en: "hello " + external_id + "!",
+      de: "hallo " + external_id + "!"
     },
     include_aliases: {
       external_id: [external_id]
