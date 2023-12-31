@@ -19,31 +19,35 @@ app.use(function (req, res, next) {
 const OneSignalClient = new OneSignal.Client(process.env.ONESIGNAL_APP_ID, process.env.ONESIGNAL_REST_API_KEY);
 //const OneSignalUserClient = new OneSignal.UserClient('userAuthKey');
 
-async function sendPushNotification(external_id) {
-  console.log(external_id)
-  
+async function sendPushNotification(external_id, content, date) {
   const notification = {
     headings: {
-      en: "test",
-      de: "TEST"
+      en: "It's almost time for your planned sip!",
+      de: "Dein geplanter Sip steht bald an!"
     },
     contents: {
-      en: "hello " + external_id + "!",
-      de: "hallo " + external_id + "!"
+      en: "Check your exercise again: " + content.name,
+      de: "Überprüfe nochmal deine Aufgabe: " + content.name
     },
     include_aliases: {
       external_id: [external_id]
     },
-    send_after: "2023-12-31 16:05:00 GMT+0100",
-    //included_segments: ["Test Users"],
+    send_after: `${date.date} ${date.time}, ${date.zone}`, //"2023-12-31 16:05:00 GMT+0100"
     target_channel: "push"
   };
 
   try {
     const send = await OneSignalClient.createNotification(notification);
-    console.log(send)
+    await database.profile.updateOne({ accountID: external_id }, {
+      $push: {
+        notifs: {
+          id: send.body.id,
+          content: content.id
+        }
+      }
+    })
   } catch {
-    console.log("oops")
+    console.log("notification could not be saved or sent.")
   }
 };
 
@@ -77,19 +81,6 @@ async function connectDB() {
 }
 
 /*
-    const eintrag = await database.area.findOne({
-        _id: new ObjectId('65897af7e3d0861685e3a4da')
-    });
-
-    await database.insertOne({
-        originalURL: link,
-        shortCode: kuerzel,
-        clickCounter: 0,
-        dateCreated: new Date(),
-        adminCode: admin,
-        adminIP: ip
-    })
-
     await database.updateOne(
         { shortCode: data.shortCode },
         { $set: { clickCounter: add } }
@@ -138,10 +129,27 @@ app.post("/getBite", async (req, res) => {
   }
 });
 
+app.post("/updateUser", async (req, res) => {
+  try {
+    const user = await database.profile.findOne({ accountID: req.body.user.auth })
+
+    if (user === null) {
+      await database.profile.insertOne({
+        accountID: req.body.user.auth,
+        name: req.body.user.name
+      })
+    }
+
+    res.status(200).end();
+  } catch {
+    console.error("profile could not be fetched or created");
+    res.status(500).end();
+  }
+})
+
 app.post("/setNotification", async (req, res) => {
   try {
-    const pushNotification = await sendPushNotification(req.body.external_id)
-
+    await sendPushNotification(req.body.external_id, req.body.content, req.body.date)
     res.status(200).end();
   } catch {
     console.error("skills could not be fetched");
