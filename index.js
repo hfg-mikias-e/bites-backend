@@ -120,14 +120,61 @@ app.post("/getSkills", async (req, res) => {
 
 app.post("/getBite", async (req, res) => {
   try {
-    const bite = await database.library.findOne({ _id: new ObjectId(req.body.biteId) });
-    console.log(bite)
-    res.status(200).send(bite);
+    const bite = await database.library.findOne({ _id: new ObjectId(req.body.biteId) })
+    const category = await database.categories.findOne({ _id: bite.category })
+    res.status(200).send({bite: bite, category: category.name});
   } catch {
     console.error("bite could not be fetched");
     res.status(500).end();
   }
 });
+
+app.post("/completeBite", async (req, res) => {
+  try {
+    const completed = await database.profile.countDocuments({
+      accountID: req.body.userId,
+      "bites.done": {
+        $in: [new ObjectId(req.body.biteId)]
+      }
+    })
+
+    if (completed === 0) {
+      console.log("not completed yet -> complete")
+      await database.profile.updateOne({ accountID: req.body.userId }, {
+        $push: {
+          "bites.done": new ObjectId(req.body.biteId)
+        }
+      })
+    }
+    res.status(200).end();
+  } catch {
+    console.error("bite could not be added to done");
+    res.status(500).end();
+  }
+})
+app.post("/favoriteBite", async (req, res) => {
+  try {
+    const saved = await database.profile.countDocuments({
+      accountID: req.body.userId,
+      "bites.fav": {
+        $in: [new ObjectId(req.body.biteId)]
+      }
+    })
+
+    if(saved === 0) {
+      console.log("not saved yet -> save")
+      await database.profile.updateOne({ accountID: req.body.userId }, {
+        $push: {
+          "bites.fav": new ObjectId(req.body.biteId)
+        }
+      })
+    }
+    res.status(200).end();
+  } catch {
+    console.error("bite could not be added to fav");
+    res.status(500).end();
+  }
+})
 
 app.post("/updateUser", async (req, res) => {
   try {
