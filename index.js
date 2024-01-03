@@ -20,6 +20,10 @@ const OneSignalClient = new OneSignal.Client(process.env.ONESIGNAL_APP_ID, proce
 //const OneSignalUserClient = new OneSignal.UserClient('userAuthKey');
 
 async function sendPushNotification(external_id, content, date) {
+  console.log(external_id)
+  console.log(content)
+  console.log(date)
+
   const notification = {
     headings: {
       en: "It's almost time for your planned sip!",
@@ -32,7 +36,7 @@ async function sendPushNotification(external_id, content, date) {
     include_aliases: {
       external_id: [external_id]
     },
-    send_after: `${date.date} ${date.time}, ${date.zone}`, //"2023-12-31 16:05:00 GMT+0100"
+    send_after: date,//`${date.date} ${date.time}, ${date.zone}`, //"2023-12-31 16:05:00 GMT+0100"
     target_channel: "push"
   };
 
