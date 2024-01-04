@@ -46,7 +46,8 @@ async function sendPushNotification(external_id, content, date) {
       $push: {
         notifs: {
           id: send.body.id,
-          content: content.id
+          content: new ObjectId(content.id),
+          date: new Date(date)
         }
       }
     })
@@ -102,7 +103,7 @@ app.get("/getCategories", async (req, res) => {
     let data = [];
     for (area of areas) {
       const categories = await database.categories.find({ area: area._id, }).toArray();
-      data.push({ name: area.name, skills: categories });
+      data.push({_id: area._id, name: area.name, skills: categories });
     }
 
     res.status(200).send(data);
@@ -125,10 +126,29 @@ app.post("/getSkills", async (req, res) => {
 app.post("/getBite", async (req, res) => {
   try {
     const bite = await database.library.findOne({ _id: new ObjectId(req.body.biteId) })
-    const category = await database.categories.findOne({ _id: bite.category })
-    res.status(200).send({bite: bite, category: category.name});
+    res.status(200).send(bite);
   } catch {
     console.error("bite could not be fetched");
+    res.status(500).end();
+  }
+});
+
+app.post("/getActiveSips", async (req, res) => {
+  let plannedSips = []
+  for (sip of req.body.sips) {
+    plannedSips.push(new ObjectId(sip))
+  }
+
+  try {
+    const activeSips = await database.library.find({
+      _id: {
+        $in: plannedSips
+      }
+    }).toArray()
+
+    res.status(200).send(activeSips);
+  } catch {
+    console.error("active sips could not be fetched");
     res.status(500).end();
   }
 });
@@ -180,18 +200,69 @@ app.post("/favoriteBite", async (req, res) => {
   }
 })
 
-app.post("/updateUser", async (req, res) => {
+app.post("/activateSip", async (req, res) => {
   try {
-    const user = await database.profile.findOne({ accountID: req.body.user.auth })
+    const activated = await database.profile.countDocuments({
+      accountID: req.body.userId,
+      "bites.active": {
+        $in: [new ObjectId(req.body.sipId)]
+      }
+    })
+
+    if (activated === 0) {
+      console.log("not completed yet -> complete")
+      await database.profile.updateOne({ accountID: req.body.userId }, {
+        $push: {
+          "bites.active": new ObjectId(req.body.sipId)
+        }
+      })
+    }
+    res.status(200).end();
+  } catch {
+    console.error("sip could not be added to active");
+    res.status(500).end();
+  }
+})
+
+app.post("/completeSip", async (req, res) => {
+  try {
+    // entferne aus bites.active und adde zu bites.done
+    // offen: entferne auch alle korrespondierenden notifs?
+
+    res.status(200).end();
+  } catch {
+    console.error("sip could not be moved frome active to done");
+    res.status(500).end();
+  }
+})
+
+app.post("/setPath", async (req, res) => {
+  try {
+    await database.profile.updateOne({ accountID: req.body.userId }, {
+      $set: {
+        currentPath: req.body.currentPath
+      }
+    })
+
+    res.status(200).end();
+  } catch {
+    console.error("bite could not be added to fav");
+    res.status(500).end();
+  }
+})
+
+app.post("/createUser", async (req, res) => {
+  try {
+    const user = await database.profile.findOne({ accountID: req.body.auth })
 
     if (user === null) {
       await database.profile.insertOne({
-        accountID: req.body.user.auth,
-        name: req.body.user.name
+        accountID: req.body.auth,
+        name: req.body.name
       })
     }
 
-    res.status(200).end();
+    res.status(200).send(user)
   } catch {
     console.error("profile could not be fetched or created");
     res.status(500).end();
@@ -200,7 +271,22 @@ app.post("/updateUser", async (req, res) => {
 
 app.post("/setNotification", async (req, res) => {
   try {
-    await sendPushNotification(req.body.external_id, req.body.content, req.body.date)
+    await sendPushNotification(req.body.external_id, req.body.content, req.body.date.notif)
+
+    // also add the date to the id in active sips
+    const entry = await database.profile.findOne({ accountID: req.body.external_id })
+    console.log(entry)
+
+    // TODO: adde irgendwie das Datum des geplanten sips zu der ID in bites.active im Userobjekt...
+
+    /*
+    await database.profile.updateOne({ accountID: req.body.external_id }, { 
+      $set: {
+        clickCounter: add
+      }
+    });
+    */
+
     res.status(200).end();
   } catch {
     console.error("skills could not be fetched");
