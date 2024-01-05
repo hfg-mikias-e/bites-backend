@@ -103,7 +103,7 @@ app.get("/getCategories", async (req, res) => {
     let data = [];
     for (area of areas) {
       const categories = await database.categories.find({ area: area._id, }).toArray();
-      data.push({_id: area._id, name: area.name, skills: categories });
+      data.push({ _id: area._id, name: area.name, skills: categories });
     }
 
     res.status(200).send(data);
@@ -134,17 +134,21 @@ app.post("/getBite", async (req, res) => {
 });
 
 app.post("/getActiveSips", async (req, res) => {
-  let plannedSips = []
-  for (sip of req.body.sips) {
-    plannedSips.push(new ObjectId(sip))
-  }
+  let activeSips = []
 
   try {
-    const activeSips = await database.library.find({
-      _id: {
-        $in: plannedSips
+    if (req.body.sips !== undefined) {
+      let plannedSips = []
+      for (sip of req.body.sips) {
+        plannedSips.push(new ObjectId(sip))
       }
-    }).toArray()
+
+      activeSips = await database.library.find({
+        _id: {
+          $in: plannedSips
+        }
+      }).toArray()
+    }
 
     res.status(200).send(activeSips);
   } catch {
@@ -153,80 +157,34 @@ app.post("/getActiveSips", async (req, res) => {
   }
 });
 
-app.post("/completeBite", async (req, res) => {
+// add the ID of a sip or bite to "done", "active", or "fav"
+app.post("/changeBiteState", async (req, res) => {
   try {
-    const completed = await database.profile.countDocuments({
+    const count = await database.profile.countDocuments({
       accountID: req.body.userId,
-      "bites.done": {
+      [req.body.state]: {
         $in: [new ObjectId(req.body.biteId)]
       }
     })
 
-    if (completed === 0) {
-      console.log("not completed yet -> complete")
+    if (count === 0) {
+      console.log("not added yet -> add to " + req.body.state)
       await database.profile.updateOne({ accountID: req.body.userId }, {
         $push: {
-          "bites.done": new ObjectId(req.body.biteId)
+          [req.body.state]: new ObjectId(req.body.biteId)
         }
       })
     }
     res.status(200).end();
   } catch {
-    console.error("bite could not be added to done");
-    res.status(500).end();
-  }
-})
-app.post("/favoriteBite", async (req, res) => {
-  try {
-    const saved = await database.profile.countDocuments({
-      accountID: req.body.userId,
-      "bites.fav": {
-        $in: [new ObjectId(req.body.biteId)]
-      }
-    })
-
-    if(saved === 0) {
-      console.log("not saved yet -> save")
-      await database.profile.updateOne({ accountID: req.body.userId }, {
-        $push: {
-          "bites.fav": new ObjectId(req.body.biteId)
-        }
-      })
-    }
-    res.status(200).end();
-  } catch {
-    console.error("bite could not be added to fav");
-    res.status(500).end();
-  }
-})
-
-app.post("/activateSip", async (req, res) => {
-  try {
-    const activated = await database.profile.countDocuments({
-      accountID: req.body.userId,
-      "bites.active": {
-        $in: [new ObjectId(req.body.sipId)]
-      }
-    })
-
-    if (activated === 0) {
-      console.log("not completed yet -> complete")
-      await database.profile.updateOne({ accountID: req.body.userId }, {
-        $push: {
-          "bites.active": new ObjectId(req.body.sipId)
-        }
-      })
-    }
-    res.status(200).end();
-  } catch {
-    console.error("sip could not be added to active");
+    console.error("bite or sip could not be added to " + req.body.state);
     res.status(500).end();
   }
 })
 
 app.post("/completeSip", async (req, res) => {
   try {
-    // entferne aus bites.active und adde zu bites.done
+    // entferne aus "active" und adde zu "done"
     // offen: entferne auch alle korrespondierenden notifs?
 
     res.status(200).end();
@@ -272,6 +230,8 @@ app.post("/createUser", async (req, res) => {
 app.post("/setNotification", async (req, res) => {
   try {
     await sendPushNotification(req.body.external_id, req.body.content, req.body.date.notif)
+
+    console.log(req.body.date.sip)
 
     // also add the date to the id in active sips
     const entry = await database.profile.findOne({ accountID: req.body.external_id })
