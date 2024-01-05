@@ -6,7 +6,7 @@ const OneSignal = require('onesignal-node');
 //const http = require('http').createServer(app);
 const { ObjectId } = require("mongodb");
 
-app.use(express.json());
+app.use(express.json({ extended: true }));
 app.use(function (req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
   res.header(
@@ -16,14 +16,40 @@ app.use(function (req, res, next) {
   next();
 });
 
+// MongoDB-Client
+const MongoClient = require("mongodb").MongoClient;
+const uri = `mongodb+srv://${process.env.MONGODB_USER}:${process.env.MONGODB_PASSWORD}@${process.env.MONGODB_ID}.mongodb.net/?retryWrites=true&w=majority`;
+const client = new MongoClient(uri);
+let database;
+
 const OneSignalClient = new OneSignal.Client(process.env.ONESIGNAL_APP_ID, process.env.ONESIGNAL_REST_API_KEY);
 //const OneSignalUserClient = new OneSignal.UserClient('userAuthKey');
 
-async function sendPushNotification(external_id, content, date) {
-  console.log(external_id)
-  console.log(content)
-  console.log(date)
+// Verbindung herstellen
+connectDB();
 
+async function cancelPushNotification(accountID, contentId) {
+  try {
+    const oldNotif = await database.profile.findOne({ accountID: accountID })
+    const notificationID = oldNotif.notifs.find(index => index.content.toString() === contentId).id
+
+    await database.profile.updateOne({
+      accountID: accountID
+    }, {
+      $pull: {
+        notifs: {
+          content: new ObjectId(contentId)
+        }
+      }
+    })
+
+    await OneSignalClient.cancelNotification(notificationID)
+  } catch {
+    console.error("there is no existing notif scheduled")
+  }
+}
+
+async function sendPushNotification(external_id, content, date) {
   const notification = {
     headings: {
       en: "It's almost time for your planned sip!",
@@ -40,8 +66,11 @@ async function sendPushNotification(external_id, content, date) {
     target_channel: "push"
   };
 
+  await cancelPushNotification(external_id, content.id)
+
   try {
-    const send = await OneSignalClient.createNotification(notification);
+    const send = await OneSignalClient.createNotification(notification)
+
     await database.profile.updateOne({ accountID: external_id }, {
       $push: {
         notifs: {
@@ -55,15 +84,6 @@ async function sendPushNotification(external_id, content, date) {
     console.log("notification could not be saved or sent.")
   }
 };
-
-// MongoDB-Client
-const MongoClient = require("mongodb").MongoClient;
-const uri = `mongodb+srv://${process.env.MONGODB_USER}:${process.env.MONGODB_PASSWORD}@${process.env.MONGODB_ID}.mongodb.net/?retryWrites=true&w=majority`;
-const client = new MongoClient(uri);
-let database;
-
-// Verbindung herstellen
-connectDB();
 
 // Funktion stellt Verbindung zur Datenbank her
 async function connectDB() {
@@ -84,17 +104,6 @@ async function connectDB() {
     await client.close();
   }
 }
-
-/*
-    await database.updateOne(
-        { shortCode: data.shortCode },
-        { $set: { clickCounter: add } }
-    );
-
-    await database.deleteOne(
-        { adminCode: req.body.short }
-    );
-*/
 
 app.get("/getCategories", async (req, res) => {
   try {
@@ -134,12 +143,12 @@ app.post("/getBite", async (req, res) => {
 });
 
 app.post("/getActiveSips", async (req, res) => {
-  let activeSips = []
-
   try {
-    if (req.body.sips !== undefined) {
+    let activeSips = []
+
+    if (req.body.activeSips !== undefined) {
       let plannedSips = []
-      for (sip of req.body.sips) {
+      for (sip of req.body.activeSips) {
         plannedSips.push(new ObjectId(sip))
       }
 
@@ -148,6 +157,12 @@ app.post("/getActiveSips", async (req, res) => {
           $in: plannedSips
         }
       }).toArray()
+
+      for (const [index, activeSip] of activeSips.entries()) {
+        if (req.body.activeSips[index].date !== undefined) {
+          activeSips[index] = { date: req.body.activeSips[index].date, ...activeSip }
+        }
+      }
     }
 
     res.status(200).send(activeSips);
@@ -159,19 +174,26 @@ app.post("/getActiveSips", async (req, res) => {
 
 // add the ID of a sip or bite to "done", "active", or "fav"
 app.post("/changeBiteState", async (req, res) => {
+  let newItem = new ObjectId(req.body.biteId)
+  if (req.body.state === 'active') {
+    newItem = { id: new ObjectId(req.body.biteId) }
+  }
+
   try {
-    const count = await database.profile.countDocuments({
+    const exists = await database.profile.findOne({
       accountID: req.body.userId,
       [req.body.state]: {
-        $in: [new ObjectId(req.body.biteId)]
+        $in: [newItem]
       }
     })
+    console.log(exists)
 
-    if (count === 0) {
+    if (exists === null) {
       console.log("not added yet -> add to " + req.body.state)
+
       await database.profile.updateOne({ accountID: req.body.userId }, {
         $push: {
-          [req.body.state]: new ObjectId(req.body.biteId)
+          [req.body.state]: newItem
         }
       })
     }
@@ -231,25 +253,34 @@ app.post("/setNotification", async (req, res) => {
   try {
     await sendPushNotification(req.body.external_id, req.body.content, req.body.date.notif)
 
-    console.log(req.body.date.sip)
-
-    // also add the date to the id in active sips
-    const entry = await database.profile.findOne({ accountID: req.body.external_id })
-    console.log(entry)
-
-    // TODO: adde irgendwie das Datum des geplanten sips zu der ID in bites.active im Userobjekt...
+    // adde das Datum des geplanten sips zu der ID in bites.active im Userobjekt...
 
     /*
-    await database.profile.updateOne({ accountID: req.body.external_id }, { 
+    const activeSips = await database.profile.findOne({ accountID: req.body.external_id })
+    console.log(activeSips.active)
+    const activeIndex = activeSips.active.find(index => index.id === new ObjectId(req.body.content.id))
+    console.log(activeIndex)
+    */
+
+    await database.profile.updateOne({
+      accountID: req.body.external_id,
+      active: {
+        "$elemMatch": { 
+          id: new ObjectId(req.body.content.id)
+        }
+      }
+    }, { 
       $set: {
-        clickCounter: add
+        "active.$": { 
+          id: new ObjectId(req.body.content.id),
+          date: new Date(req.body.date.sip)
+        }
       }
     });
-    */
 
     res.status(200).end();
   } catch {
-    console.error("skills could not be fetched");
+    console.error("notif could not be set");
     res.status(500).end();
   }
 });
