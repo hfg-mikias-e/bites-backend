@@ -321,6 +321,7 @@ app.post("/testNotification", async (req, res) => {
     res.status(500).end();
   }
 });
+*/
 
 app.get('/', (req, res) => {
   res.status(200).send('<h1>Hey!</h1>').end;
@@ -328,4 +329,3 @@ app.get('/', (req, res) => {
 app.listen(process.env.PORT || 4000, () => {
   console.log('listening!');
 });
-*/
