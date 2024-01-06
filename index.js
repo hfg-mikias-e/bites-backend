@@ -217,9 +217,7 @@ app.post("/changeBiteState", async (req, res) => {
     const exists = await database.profile.findOne({
       accountID: req.body.userId,
       [req.body.state]: {
-        "$elemMatch": {
-          id: new ObjectId(req.body.content.id)
-        }
+        "$elemMatch": newItem
       }
     });
     console.log(exists)
