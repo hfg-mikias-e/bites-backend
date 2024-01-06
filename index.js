@@ -28,6 +28,29 @@ const OneSignalClient = new OneSignal.Client(process.env.ONESIGNAL_APP_ID, proce
 // Verbindung herstellen
 connectDB();
 
+async function sendTestNotification(external_id, date) {
+  const notification = {
+    headings: {
+      en: "TEST",
+    },
+    contents: {
+      en: "This is a test messsage.",
+    },
+    include_aliases: {
+      external_id: [external_id]
+    },
+    send_after: date,
+    target_channel: "push"
+  };
+
+  try {
+    const send = await OneSignalClient.createNotification(notification)
+    console.log("Notification created: " + send)
+  } catch {
+    console.error("Could not send Notification.")
+  }
+}
+
 async function cancelPushNotification(accountID, contentId) {
   try {
     const oldNotif = await database.profile.findOne({ accountID: accountID })
@@ -62,7 +85,7 @@ async function sendPushNotification(external_id, content, date) {
     include_aliases: {
       external_id: [external_id]
     },
-    send_after: date,//`${date.date} ${date.time}, ${date.zone}`, //"2023-12-31 16:05:00 GMT+0100"
+    send_after: date, //"2023-12-31 16:05:00 GMT+0100"
     target_channel: "push"
   };
 
@@ -70,6 +93,7 @@ async function sendPushNotification(external_id, content, date) {
 
   try {
     const send = await OneSignalClient.createNotification(notification)
+    console.log("Notification created.")
 
     await database.profile.updateOne({ accountID: external_id }, {
       $push: {
@@ -253,15 +277,6 @@ app.post("/setNotification", async (req, res) => {
   try {
     await sendPushNotification(req.body.external_id, req.body.content, req.body.date.notif)
 
-    // adde das Datum des geplanten sips zu der ID in bites.active im Userobjekt...
-
-    /*
-    const activeSips = await database.profile.findOne({ accountID: req.body.external_id })
-    console.log(activeSips.active)
-    const activeIndex = activeSips.active.find(index => index.id === new ObjectId(req.body.content.id))
-    console.log(activeIndex)
-    */
-
     await database.profile.updateOne({
       accountID: req.body.external_id,
       active: {
@@ -277,6 +292,17 @@ app.post("/setNotification", async (req, res) => {
         }
       }
     });
+
+    res.status(200).end();
+  } catch {
+    console.error("notif could not be set");
+    res.status(500).end();
+  }
+});
+
+app.post("/setNotification", async (req, res) => {
+  try {
+    await sendTestNotification(req.body.external_id, req.body.date)
 
     res.status(200).end();
   } catch {
