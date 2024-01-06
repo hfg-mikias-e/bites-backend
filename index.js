@@ -28,6 +28,7 @@ const OneSignalClient = new OneSignal.Client(process.env.ONESIGNAL_APP_ID, proce
 // Verbindung herstellen
 connectDB();
 
+/*
 async function sendTestNotification(external_id, date) {
   const notification = {
     headings: {
@@ -50,6 +51,7 @@ async function sendTestNotification(external_id, date) {
     console.error("Could not send Notification.")
   }
 }
+*/
 
 async function cancelPushNotification(accountID, contentId) {
   try {
@@ -204,12 +206,22 @@ app.post("/changeBiteState", async (req, res) => {
   }
 
   try {
+    /*
     const exists = await database.profile.findOne({
       accountID: req.body.userId,
       [req.body.state]: {
         $in: [newItem]
       }
     })
+    */
+    const exists = await database.profile.findOne({
+      accountID: req.body.userId,
+      [req.body.state]: {
+        "$elemMatch": {
+          id: new ObjectId(req.body.content.id)
+        }
+      }
+    });
     console.log(exists)
 
     if (exists === null) {
@@ -300,6 +312,7 @@ app.post("/setNotification", async (req, res) => {
   }
 });
 
+/*
 app.post("/testNotification", async (req, res) => {
   try {
     await sendTestNotification(req.body.external_id, req.body.date)
@@ -317,3 +330,4 @@ app.get('/', (req, res) => {
 app.listen(process.env.PORT || 4000, () => {
   console.log('listening!');
 });
+*/
