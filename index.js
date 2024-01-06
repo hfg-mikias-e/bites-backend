@@ -236,6 +236,21 @@ app.post("/changeBiteState", async (req, res) => {
           [req.body.state]: newItem
         }
       })
+
+      
+      if (req.body.state === 'done') {
+        try {
+          await database.profile.updateOne({ accountID: req.body.userId }, {
+            $pull: {
+              active: {
+                id: newItem
+              }
+            }
+          });
+        } catch {
+          console.error("bite/sip could not be pulled from active")
+        }
+      }
     } catch {
       console.error("bite/sip could not be added to " + req.body.state)
       res.status(500).end();
