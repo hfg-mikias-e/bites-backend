@@ -300,7 +300,7 @@ app.post("/setNotification", async (req, res) => {
   }
 });
 
-app.post("/setNotification", async (req, res) => {
+app.post("/testNotification", async (req, res) => {
   try {
     await sendTestNotification(req.body.external_id, req.body.date)
 
