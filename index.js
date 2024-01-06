@@ -200,9 +200,9 @@ app.post("/getActiveSips", async (req, res) => {
 
 // add the ID of a sip or bite to "done", "active", or "fav"
 app.post("/changeBiteState", async (req, res) => {
-  let newItem = new ObjectId(req.body.biteId)
+  let newItem = { $in: [new ObjectId(req.body.biteId)] }
   if (req.body.state === 'active') {
-    newItem = { id: new ObjectId(req.body.biteId) }
+    newItem = { "$elemMatch": { id: new ObjectId(req.body.biteId) } }
   }
 
   try {
@@ -216,9 +216,7 @@ app.post("/changeBiteState", async (req, res) => {
     */
     const exists = await database.profile.findOne({
       accountID: req.body.userId,
-      [req.body.state]: {
-        "$elemMatch": newItem
-      }
+      [req.body.state]: newItem
     });
     console.log(exists)
 
