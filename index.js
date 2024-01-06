@@ -200,14 +200,13 @@ app.post("/getActiveSips", async (req, res) => {
 
 // add the ID of a sip or bite to "done", "active", or "fav"
 app.post("/changeBiteState", async (req, res) => {
+  let exists = null
   let newItem = new ObjectId(req.body.biteId)
   if (req.body.state === 'active') {
     newItem = { id: new ObjectId(req.body.biteId) }
   }
 
   try {
-    const exists = null
-
     if (req.body.state === 'active') {
       exists = await database.profile.findOne({
         accountID: req.body.userId,
@@ -223,8 +222,13 @@ app.post("/changeBiteState", async (req, res) => {
         }
       })
     }
+  } catch {
+    console.log("could not look for bite/sip in " + req.body.state)
+    res.status(500).end();
+  }
 
-    if (exists === null) {
+  if (exists === null) {
+    try {
       console.log("not added yet -> add to " + req.body.state)
 
       await database.profile.updateOne({ accountID: req.body.userId }, {
@@ -232,25 +236,13 @@ app.post("/changeBiteState", async (req, res) => {
           [req.body.state]: newItem
         }
       })
+    } catch {
+      console.error("bite/sip could not be added to " + req.body.state)
+      res.status(500).end();
     }
-    
-    res.status(200).end();
-  } catch {
-    console.error("bite or sip could not be added to " + req.body.state);
-    res.status(500).end();
   }
-})
-
-app.post("/completeSip", async (req, res) => {
-  try {
-    // entferne aus "active" und adde zu "done"
-    // offen: entferne auch alle korrespondierenden notifs?
-
-    res.status(200).end();
-  } catch {
-    console.error("sip could not be moved frome active to done");
-    res.status(500).end();
-  }
+  
+  res.status(200).end();
 })
 
 app.post("/setPath", async (req, res) => {
