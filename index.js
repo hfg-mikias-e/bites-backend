@@ -200,25 +200,29 @@ app.post("/getActiveSips", async (req, res) => {
 
 // add the ID of a sip or bite to "done", "active", or "fav"
 app.post("/changeBiteState", async (req, res) => {
-  let newItem = { $in: [new ObjectId(req.body.biteId)] }
+  let newItem = new ObjectId(req.body.biteId)
   if (req.body.state === 'active') {
-    newItem = { "$elemMatch": { id: new ObjectId(req.body.biteId) } }
+    newItem = { id: new ObjectId(req.body.biteId) }
   }
 
   try {
-    /*
-    const exists = await database.profile.findOne({
-      accountID: req.body.userId,
-      [req.body.state]: {
-        $in: [newItem]
-      }
-    })
-    */
-    const exists = await database.profile.findOne({
-      accountID: req.body.userId,
-      [req.body.state]: newItem
-    });
-    console.log(exists)
+    const exists = null
+
+    if (req.body.state === 'active') {
+      exists = await database.profile.findOne({
+        accountID: req.body.userId,
+        [req.body.state]: {
+          "$elemMatch": newItem
+        }
+      });
+    } else {
+      exists = await database.profile.findOne({
+        accountID: req.body.userId,
+        [req.body.state]: {
+          $in: [newItem]
+        }
+      })
+    }
 
     if (exists === null) {
       console.log("not added yet -> add to " + req.body.state)
@@ -229,6 +233,7 @@ app.post("/changeBiteState", async (req, res) => {
         }
       })
     }
+    
     res.status(200).end();
   } catch {
     console.error("bite or sip could not be added to " + req.body.state);
