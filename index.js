@@ -132,6 +132,8 @@ async function connectDB() {
 }
 
 app.get("/getCategories", async (req, res) => {
+  console.log("/getCategories")
+
   try {
     const areas = await database.area.find().toArray();
 
@@ -149,6 +151,8 @@ app.get("/getCategories", async (req, res) => {
 });
 
 app.post("/getSkills", async (req, res) => {
+  console.log("/getSkills")
+
   try {
     const skills = await database.library.find({ category: new ObjectId(req.body.categoryId) }).toArray();
     res.status(200).send(skills);
@@ -159,6 +163,8 @@ app.post("/getSkills", async (req, res) => {
 });
 
 app.post("/getBite", async (req, res) => {
+  console.log("/getBite")
+  
   try {
     const bite = await database.library.findOne({ _id: new ObjectId(req.body.biteId) })
     res.status(200).send(bite);
@@ -169,6 +175,8 @@ app.post("/getBite", async (req, res) => {
 });
 
 app.post("/getActiveSips", async (req, res) => {
+  console.log("/getActiveSips")
+
   try {
     let activeSips = []
 
@@ -200,6 +208,8 @@ app.post("/getActiveSips", async (req, res) => {
 
 // add the ID of a sip or bite to "done", "active", or "fav"
 app.post("/changeBiteState", async (req, res) => {
+  console.log("/changeBiteState")
+
   let exists = null
   let newItem = new ObjectId(req.body.biteId)
   if (req.body.state === 'active') {
@@ -261,6 +271,8 @@ app.post("/changeBiteState", async (req, res) => {
 })
 
 app.post("/setPath", async (req, res) => {
+  console.log("/setPath")
+
   try {
     await database.profile.updateOne({ accountID: req.body.userId }, {
       $set: {
@@ -276,6 +288,8 @@ app.post("/setPath", async (req, res) => {
 })
 
 app.post("/createUser", async (req, res) => {
+  console.log("/createUser")
+
   try {
     const user = await database.profile.findOne({ accountID: req.body.auth })
 
@@ -294,6 +308,8 @@ app.post("/createUser", async (req, res) => {
 })
 
 app.post("/setNotification", async (req, res) => {
+  console.log("/setNotification")
+
   try {
     await sendPushNotification(req.body.external_id, req.body.content, req.body.date.notif)
 
@@ -334,6 +350,7 @@ app.post("/testNotification", async (req, res) => {
 */
 
 app.get('/', (req, res) => {
+  console.log("responding!")
   res.status(200).send('<h1>Hey!</h1>').end;
 });
 app.listen(process.env.PORT || 4000, () => {
