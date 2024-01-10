@@ -118,10 +118,8 @@ async function connectDB() {
     console.log("Erfolgreich mit Datenbank verbunden!");
 
     database = {
-      badges: client.db("achievements").collection("badges"),
       area: client.db("bites").collection("area"),
       categories: client.db("bites").collection("categories"),
-      levels: client.db("bites").collection("levels"),
       library: client.db("bites").collection("library"),
       profile: client.db("users").collection("profile"),
     };
@@ -131,25 +129,59 @@ async function connectDB() {
   }
 }
 
-app.get("/getCategories", async (req, res) => {
-  console.log("/getCategories")
+app.get("/getData", async (req, res) => {
+  console.log("/getData")
 
   try {
     const areas = await database.area.find().toArray();
-
-    let data = [];
-    for (area of areas) {
-      const categories = await database.categories.find({ area: area._id, }).toArray();
-      data.push({ _id: area._id, name: area.name, skills: categories });
-    }
-
-    res.status(200).send(data);
+    const categories = await database.categories.find().toArray();
+    const skills = await database.library.find().toArray();
+    res.status(200).send({areas: areas, categories: categories, skills: skills});
   } catch {
     console.error("categories could not be fetched");
     res.status(500).end();
   }
 });
 
+/*
+app.get("/getAreas", async (req, res) => {
+  console.log("/getCategories")
+
+  try {
+    const areas = await database.area.find().toArray();
+    res.status(200).send(areas);
+  } catch {
+    console.error("categories could not be fetched");
+    res.status(500).end();
+  }
+});
+
+app.get("/getCategories", async (req, res) => {
+  console.log("/getCategories")
+
+  try {
+    const categories = await database.categories.find().toArray();
+    res.status(200).send(categories);
+  } catch {
+    console.error("categories could not be fetched");
+    res.status(500).end();
+  }
+});
+
+app.get("/getSkills", async (req, res) => {
+  console.log("/getSkills")
+
+  try {
+    const skills = await database.library.find().toArray();
+    res.status(200).send(skills);
+  } catch {
+    console.error("skills could not be fetched");
+    res.status(500).end();
+  }
+});
+*/
+
+/*
 app.post("/getSkills", async (req, res) => {
   console.log("/getSkills")
 
@@ -161,6 +193,7 @@ app.post("/getSkills", async (req, res) => {
     res.status(500).end();
   }
 });
+*/
 
 app.post("/getBite", async (req, res) => {
   console.log("/getBite")
@@ -174,6 +207,7 @@ app.post("/getBite", async (req, res) => {
   }
 });
 
+/*
 app.post("/getActiveSips", async (req, res) => {
   console.log("/getActiveSips")
 
@@ -181,10 +215,7 @@ app.post("/getActiveSips", async (req, res) => {
     let activeSips = []
 
     if (req.body.activeSips !== undefined) {
-      let plannedSips = []
-      for (sip of req.body.activeSips) {
-        plannedSips.push(new ObjectId(sip))
-      }
+      let plannedSips = await req.body.activeSips.map(index => new ObjectId(index))
 
       activeSips = await database.library.find({
         _id: {
@@ -205,6 +236,7 @@ app.post("/getActiveSips", async (req, res) => {
     res.status(500).end();
   }
 });
+*/
 
 // add the ID of a sip or bite to "done", "active", or "fav"
 app.post("/changeBiteState", async (req, res) => {
