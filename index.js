@@ -75,6 +75,8 @@ async function cancelPushNotification(accountID, contentId) {
 }
 
 async function sendPushNotification(external_id, content, date) {
+  console.log(external_id, date)
+
   const notification = {
     headings: {
       en: "It's almost time for your planned sip!"
