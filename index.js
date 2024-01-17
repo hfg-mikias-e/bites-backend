@@ -345,6 +345,7 @@ app.post("/createUser", async (req, res) => {
       })
     }
 
+    console.log(user)
     res.status(200).send(user)
   } catch {
     console.error("profile could not be fetched or created");
