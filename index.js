@@ -55,8 +55,8 @@ async function sendTestNotification(external_id, date) {
 
 async function cancelPushNotification(accountID, contentId) {
   try {
-    const oldNotif = await database.profile.findOne({ accountID: accountID })
-    const notificationID = oldNotif.notifs.find(index => index.content.toString() === contentId).id
+    const user = await database.profile.findOne({ accountID: accountID })
+    const notificationID = user.notifs.find(index => index.content.toString() === contentId).id
 
     await database.profile.updateOne({
       accountID: accountID
@@ -77,12 +77,12 @@ async function cancelPushNotification(accountID, contentId) {
 async function sendPushNotification(external_id, content, date) {
   const notification = {
     headings: {
-      en: "It's almost time for your planned sip!",
-      de: "Dein geplanter Sip steht bald an!"
+      en: "It's almost time for your planned sip!"
+      //de: "Dein geplanter Sip steht bald an!"
     },
     contents: {
-      en: "Check your exercise again: " + content.name,
-      de: "Überprüfe nochmal deine Aufgabe: " + content.name
+      en: "Check your exercise again: " + content.name
+      //de: "Überprüfe nochmal deine Aufgabe: " + content.name
     },
     include_aliases: {
       external_id: [external_id]
@@ -278,7 +278,6 @@ app.post("/changeBiteState", async (req, res) => {
           [req.body.state]: newItem
         }
       })
-
       
       if (req.body.state === 'done') {
         try {
@@ -297,11 +296,24 @@ app.post("/changeBiteState", async (req, res) => {
       console.error("bite/sip could not be added to " + req.body.state)
       res.status(500).end();
     }
+  } else if(req.body.state === 'fav') {
+    try {
+      await database.profile.updateOne({ accountID: req.body.userId }, {
+        $pull: {
+          fav: {
+            id: newItem
+          }
+        }
+      });
+    } catch {
+      console.error("bite/sip could not be pulled from favs")
+    }
   }
   
   res.status(200).end();
 })
 
+/*
 app.post("/setPath", async (req, res) => {
   console.log("/setPath")
 
@@ -314,10 +326,11 @@ app.post("/setPath", async (req, res) => {
 
     res.status(200).end();
   } catch {
-    console.error("bite could not be added to fav");
+    console.error("path could not be set");
     res.status(500).end();
   }
 })
+*/
 
 app.post("/createUser", async (req, res) => {
   console.log("/createUser")
@@ -343,7 +356,7 @@ app.post("/setNotification", async (req, res) => {
   console.log("/setNotification")
 
   try {
-    await sendPushNotification(req.body.external_id, req.body.content, req.body.date.notif)
+    await sendPushNotification(req.body.external_id, req.body.content, req.body.date/*.notif*/)
 
     await database.profile.updateOne({
       accountID: req.body.external_id,
@@ -356,7 +369,7 @@ app.post("/setNotification", async (req, res) => {
       $set: {
         "active.$": { 
           id: new ObjectId(req.body.content.id),
-          date: new Date(req.body.date.sip)
+          date: new Date(req.body.date/*.sip*/)
         }
       }
     });
