@@ -57,6 +57,7 @@ async function cancelPushNotification(accountID, contentId) {
   try {
     const user = await database.profile.findOne({ accountID: accountID })
     const notificationID = user.notifs.find(index => index.content.toString() === contentId).id
+    console.log(notificationID)
 
     await database.profile.updateOne({
       accountID: accountID
@@ -246,11 +247,14 @@ app.post("/changeBiteState", async (req, res) => {
 
   let exists = null
   let newItem = new ObjectId(req.body.biteId)
+  /*
   if (req.body.state === 'active') {
     newItem = { id: new ObjectId(req.body.biteId) }
   }
+  */
 
   try {
+    /*
     if (req.body.state === 'active') {
       exists = await database.profile.findOne({
         accountID: req.body.userId,
@@ -266,6 +270,13 @@ app.post("/changeBiteState", async (req, res) => {
         }
       })
     }
+    */
+    exists = await database.profile.findOne({
+      accountID: req.body.userId,
+      [req.body.state]: {
+        $in: [newItem]
+      }
+    })
   } catch {
     console.log("could not look for bite/sip in " + req.body.state)
     res.status(500).end();
@@ -285,9 +296,7 @@ app.post("/changeBiteState", async (req, res) => {
         try {
           await database.profile.updateOne({ accountID: req.body.userId }, {
             $pull: {
-              active: {
-                id: newItem
-              }
+              active: newItem
             }
           });
         } catch {
@@ -298,13 +307,12 @@ app.post("/changeBiteState", async (req, res) => {
       console.error("bite/sip could not be added to " + req.body.state)
       res.status(500).end();
     }
-  } else if(req.body.state === 'fav') {
+  } else if(req.body.state !== 'done') {
+    console.log("pull from " + req.body.state)
     try {
       await database.profile.updateOne({ accountID: req.body.userId }, {
         $pull: {
-          fav: {
-            id: newItem
-          }
+          [req.body.state]: newItem
         }
       });
     } catch {
@@ -359,8 +367,9 @@ app.post("/setNotification", async (req, res) => {
   console.log("/setNotification")
 
   try {
-    await sendPushNotification(req.body.external_id, req.body.content, req.body.date/*.notif*/)
+    await sendPushNotification(req.body.external_id, req.body.content, req.body.date)
 
+    /*
     await database.profile.updateOne({
       accountID: req.body.external_id,
       active: {
@@ -372,14 +381,38 @@ app.post("/setNotification", async (req, res) => {
       $set: {
         "active.$": { 
           id: new ObjectId(req.body.content.id),
-          date: new Date(req.body.date/*.sip*/)
+          date: new Date(req.body.date)
         }
       }
     });
+    */
 
     res.status(200).end();
   } catch {
     console.error("notif could not be set");
+    res.status(500).end();
+  }
+});
+
+app.post("/cancelNotification", async (req, res) => {
+  console.log("/cancelNotification")
+
+  try {
+    await cancelPushNotification(req.body.external_id, req.body.contentId)
+    res.status(200).end();
+  } catch {
+    console.error("notif could not be canceled");
+    res.status(500).end();
+  }
+});
+
+app.post("/getNotificationData", async (req, res) => {
+  try {
+    const user = await database.profile.findOne({ accountID: req.body.accountID })
+    const notificationData = user.notifs.find(index => index.content.toString() === req.body.contentId)
+    res.status(200).send(notificationData)
+  } catch {
+    console.error("notif could not be fetched");
     res.status(500).end();
   }
 });
