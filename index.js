@@ -243,7 +243,7 @@ app.post("/getActiveSips", async (req, res) => {
 
 // add the ID of a sip or bite to "done", "active", or "fav"
 app.post("/changeBiteState", async (req, res) => {
-  console.log("/changeBiteState")
+  console.log("/changeBiteState: " + req.body.state)
 
   let exists = null
   let newItem = new ObjectId(req.body.biteId)
