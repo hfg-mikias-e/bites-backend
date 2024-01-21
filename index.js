@@ -91,7 +91,8 @@ async function sendPushNotification(external_id, content, date) {
       external_id: [external_id]
     },
     send_after: date, //"2023-12-31 16:05:00 GMT+0100"
-    target_channel: "push"
+    target_channel: "push",
+    app_url: "https://driven-by-future-skills.vercel.app/reminder/" + content.id
   };
 
   await cancelPushNotification(external_id, content.id)
@@ -118,6 +119,10 @@ async function sendMessage(external_id, message) {
   console.log(external_id, message)
 
   const notification = {
+    headings: {
+      en: "Reminder saved!"
+      //de: "Dein geplanter Sip steht bald an!"
+    },
     contents: {
       en: message
     },
