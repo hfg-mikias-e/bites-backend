@@ -114,6 +114,27 @@ async function sendPushNotification(external_id, content, date) {
   }
 };
 
+async function sendMessage(external_id, message) {
+  console.log(external_id, message)
+
+  const notification = {
+    contents: {
+      en: message
+    },
+    include_aliases: {
+      external_id: [external_id]
+    },
+    target_channel: "push"
+  };
+
+  try {
+    const send = await OneSignalClient.createNotification(notification)
+    console.log("Message created.")
+  } catch {
+    console.log("message could not be sent.")
+  }
+};
+
 // Funktion stellt Verbindung zur Datenbank her
 async function connectDB() {
   try {
@@ -363,30 +384,23 @@ app.post("/createUser", async (req, res) => {
   }
 })
 
+app.post("/showMessage", async (req, res) => {
+  console.log("/showMessage")
+
+  try {
+    await sendMessage(req.body.external_id, req.body.message)
+    res.status(200).end();
+  } catch {
+    console.error("message could not be set");
+    res.status(500).end();
+  }
+});
+
 app.post("/setNotification", async (req, res) => {
   console.log("/setNotification")
 
   try {
     await sendPushNotification(req.body.external_id, req.body.content, req.body.date)
-
-    /*
-    await database.profile.updateOne({
-      accountID: req.body.external_id,
-      active: {
-        "$elemMatch": { 
-          id: new ObjectId(req.body.content.id)
-        }
-      }
-    }, { 
-      $set: {
-        "active.$": { 
-          id: new ObjectId(req.body.content.id),
-          date: new Date(req.body.date)
-        }
-      }
-    });
-    */
-
     res.status(200).end();
   } catch {
     console.error("notif could not be set");
