@@ -78,13 +78,20 @@ async function cancelPushNotification(accountID, contentId) {
 async function sendPushNotification(external_id, content, date) {
   console.log(external_id, date)
 
+  let contentType = ""
+  if (content.practical) {
+    contentType = "Sip"
+  } else {
+    contentType = "Bite"
+  }
+
   const notification = {
     headings: {
-      en: "It's almost time for your planned sip!"
+      en: "It's time!"
       //de: "Dein geplanter Sip steht bald an!"
     },
     contents: {
-      en: "Check your exercise again: " + content.name
+      en: "Your planned " + contentType + ' "' + content.name + '" is waiting for you!'
       //de: "Überprüfe nochmal deine Aufgabe: " + content.name
     },
     include_aliases: {
@@ -92,10 +99,10 @@ async function sendPushNotification(external_id, content, date) {
     },
     send_after: date, //"2023-12-31 16:05:00 GMT+0100"
     target_channel: "push",
-    url: "https://driven-by-future-skills.vercel.app/reminder/" + content.id
+    url: "https://driven-by-future-skills.vercel.app/reminder/" + content._id
   };
 
-  await cancelPushNotification(external_id, content.id)
+  await cancelPushNotification(external_id, content._id)
 
   try {
     const send = await OneSignalClient.createNotification(notification)
@@ -105,7 +112,7 @@ async function sendPushNotification(external_id, content, date) {
       $push: {
         notifs: {
           id: send.body.id,
-          content: new ObjectId(content.id),
+          content: new ObjectId(content._id),
           date: new Date(date)
         }
       }
