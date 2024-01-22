@@ -377,6 +377,7 @@ app.post("/setPath", async (req, res) => {
 
 app.post("/createUser", async (req, res) => {
   console.log("/createUser")
+  console.log(req.body.name, req.body.auth)
 
   try {
     const user = await database.profile.findOne({ accountID: req.body.auth })
