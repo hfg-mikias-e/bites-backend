@@ -375,7 +375,7 @@ app.post("/createUser", async (req, res) => {
   try {
     const user = await database.profile.findOne({ accountID: req.body.auth })
 
-    if (user === null && req.body.name) {
+    if (user === null && req.body.name && req.body.auth) {
       await database.profile.insertOne({
         accountID: req.body.auth,
         name: req.body.name
