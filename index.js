@@ -370,11 +370,12 @@ app.post("/setPath", async (req, res) => {
 
 app.post("/createUser", async (req, res) => {
   console.log("/createUser")
+  console.log(req.body.auth)
 
   try {
     const user = await database.profile.findOne({ accountID: req.body.auth })
 
-    if (user === null) {
+    if (user === null && req.body.name) {
       await database.profile.insertOne({
         accountID: req.body.auth,
         name: req.body.name
