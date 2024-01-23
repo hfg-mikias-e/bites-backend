@@ -85,6 +85,8 @@ async function sendPushNotification(external_id, content, date) {
     contentType = "Bite"
   }
 
+  console.log(process.env.VUE_APP_ENDPOINT + "/reminder/" + content._id)
+
   const notification = {
     headings: {
       en: "It's time!"
@@ -99,7 +101,7 @@ async function sendPushNotification(external_id, content, date) {
     },
     send_after: date, //"2023-12-31 16:05:00 GMT+0100"
     target_channel: "push",
-    url: process.env.VUE_APP_ENDPOINT + "/reminder/" /*"https://future-skills-with-bites.netlify.app/reminder/"/*"https://driven-by-future-skills.vercel.app/reminder/"*/ + content._id
+    url: process.env.VUE_APP_ENDPOINT + "/reminder/" + content._id
   };
 
   await cancelPushNotification(external_id, content._id)
