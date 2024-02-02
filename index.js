@@ -19,6 +19,7 @@ const OneSignalClient = new OneSignal.Client(
 );
 
 async function sendPushNotification(external_id, content, date) {
+  console.log(content)
   const contentType = content.practical ? "Sip" : "Bite";
 
   const notification = {
