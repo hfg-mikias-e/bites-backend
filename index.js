@@ -38,6 +38,8 @@ async function sendPushNotification(external_id, content, date) {
     },
     send_after: date, //"2023-12-31 16:05:00 GMT+0100"
     target_channel: "push",
+    ios_interruption_level: 'time_sensitive',
+    priority: 10,
     url: process.env.VUE_APP_ENDPOINT + "/reminder/" + content.id,
   };
 
