@@ -11,6 +11,6 @@ Hierfür wird [Node.js](https://nodejs.org/) benötigt (min. Version 16)
 
 ### zugehörige Repositories
 
-- [Bites Frontend](https://github.com/hfg-mikias-e/bites-frontend).
+- [Bites Frontend](https://github.com/hfg-mikias-e/bites-prototype).
 
 <sup>Dieser Prototyp ist ein Teil des Bachelorprojekts "Bites – Future Skills durch Microlearning" von Konrad Kleisinger, Mikias Ehrmann und Paul Mang an der HfG Schwäbisch Gmünd (WS 23/24)</sup>
